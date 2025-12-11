@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+        <meta charset="UTF-8">
+        <title>{% block title %}Wishlist{% endblock %}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+        <!-- Google Fonts: Orbitron (títols) + Inter (cos) -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        >
+    
+        <link rel="stylesheet" href="/static/style.css">
+        <link rel="icon" type="image/gif" href="/static/oia-uia.gif">
+</head>
+    
+<body>
+<header class="topbar">
+    <div class="topbar-inner">
+        <div class="brand">
+            <img src="/static/logo.png" alt="Logo" class="brand-logo-img">
+            <div class="brand-text">
+                <span class="brand-title">My Wishlist Studio</span>
+                <span class="brand-subtitle">Un lloc bonic per guardar coses que vols</span>
+            </div>
+        </div>
+        <nav class="top-nav">
+            <a href="/" class="nav-link {% if request.url.path == '/' %}nav-link-active{% endif %}">
+                Llista
+            </a>
+            <button type="button" class="rave-toggle" id="raveToggle">
+                Modo Rave
+            </button>
+        </nav>
+    </div>
+    
+</header>
+
+<div class="page-shell">
+    <main class="page-main">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<footer class="page-footer">
+    Fet amb 💛, FastAPI i moltes línies de CSS.
+</footer>
+
+<script>
+  console.log('Script loaded!');
+  
+  (function() {
+    const body = document.body;
+    const toggle = document.getElementById('raveToggle');
+    if (!toggle) return;
+
+    // Recupera estat desat
+    const stored = localStorage.getItem('wishlist-rave-mode');
+    if (stored === 'on') {
+      body.classList.add('rave-mode');
+      toggle.classList.add('is-on');
+    }
+
+    toggle.addEventListener('click', () => {
+      const nowOn = !body.classList.contains('rave-mode');
+      body.classList.toggle('rave-mode', nowOn);
+      toggle.classList.toggle('is-on', nowOn);
+      localStorage.setItem('wishlist-rave-mode', nowOn ? 'on' : 'off');
+    });
+  })();
+
+  // Set up checkbox handlers on DOMContentLoaded
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log('DOM loaded, setting up purchase toggles...');
+    const checkboxes = document.querySelectorAll(".purchase-toggle");
+    console.log(`Found ${checkboxes.length} checkboxes`);
+    
+    // Track which checkboxes are currently processing to prevent double-fires
+    const processing = new Set();
+    
+    checkboxes.forEach((chk) => {
+      const id = chk.dataset.id;
+      
+      chk.addEventListener("change", async (e) => {
+        e.stopPropagation();
+        const checkbox = e.target;
+        
+        // Prevent double-firing
+        if (processing.has(id)) {
+          console.log('Already processing checkbox', id, '- skipping');
+          e.preventDefault();
+          return;
+        }
+        
+        processing.add(id);
+        const newCheckedState = checkbox.checked;
+        console.log('Checkbox changed!', id, 'new state:', newCheckedState);
+    
+        try {
+          const response = await fetch(`/toggle-purchased/${id}`, {
+            method: "POST"
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('Server response:', data);
+          
+          if (data.success) {
+            // Update the card's visual state
+            const card = checkbox.closest('.product-card');
+            if (card) {
+              if (data.purchased) {
+                card.classList.add('purchased');
+              } else {
+                card.classList.remove('purchased');
+              }
+              
+              // Reorder cards: unpurchased first, then purchased
+              const grid = card.closest('.product-grid');
+              if (grid) {
+                const allCards = Array.from(grid.querySelectorAll('.product-card'));
+                
+                // Separate purchased and unpurchased cards
+                const unpurchased = allCards.filter(c => !c.classList.contains('purchased'));
+                const purchased = allCards.filter(c => c.classList.contains('purchased'));
+                
+                // Clear grid and re-append in order: unpurchased first, then purchased
+                allCards.forEach(c => c.remove());
+                [...unpurchased, ...purchased].forEach(c => grid.appendChild(c));
+              }
+            }
+            // Ensure checkbox matches server state
+            checkbox.checked = data.purchased;
+          } else {
+            // Revert on error
+            checkbox.checked = !newCheckedState;
+            console.error('Failed to toggle purchased status');
+          }
+        } catch (error) {
+          console.error('Error toggling purchased status:', error);
+          // Revert on error
+          checkbox.checked = !newCheckedState;
+        } finally {
+          // Remove from processing set
+          setTimeout(() => {
+            processing.delete(id);
+          }, 300);
+        }
+      });
+      
+      // Prevent label clicks from triggering link navigation
+      const label = chk.closest('label');
+      if (label) {
+        label.addEventListener('click', (e) => {
+          // Stop propagation for label/span clicks, but let checkbox clicks through
+          if (e.target === label || e.target.tagName === 'SPAN') {
+            e.stopPropagation();
+          }
+        });
+      }
+    });
+  });
+</script>
+    
+    
+
+</body>
+</html>
+

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Detall de l'entrada{% endblock %}
+
+{% block content %}
+<section class="panel panel-detail">
+    <a href="/" class="back-link">← Tornar a la llista</a>
+
+    <article class="detail-layout">
+        <div class="detail-media">
+            {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.title }}" class="detail-image" />
+            {% else %}
+                <div class="detail-placeholder">
+                    Sense imatge disponible
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="detail-content">
+            <h1 class="detail-title">{{ product.title }}</h1>
+
+            <div class="detail-badges-row">
+                <span class="badge {% if product.entry_type == 'page' %}badge-page{% else %}badge-product{% endif %}">
+                    {% if product.entry_type == 'page' %}
+                        Pàgina amb molts productes / inspiració
+                    {% else %}
+                        Producte individual
+                    {% endif %}
+                </span>
+
+                {% if product.category %}
+                    <span class="badge badge-category">
+                        {{ product.category }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <p class="detail-source">
+                Botiga / origen: <strong>{{ product.source }}</strong>
+            </p>
+
+            <p class="detail-url">
+                <a href="{{ product.url }}" target="_blank" rel="noopener noreferrer" class="btn-link">
+                    Obrir la pàgina original
+                </a>
+            </p>
+
+            <p class="detail-price">
+                {% if product.entry_type == 'product' and product.price %}
+                    Preu actual detectat: <strong>{{ "%.2f"|format(product.price) }} {{ product.currency or "" }}</strong>
+                {% elif product.entry_type == 'page' %}
+                    Aquesta entrada correspon a una pàgina general, no un sol producte.
+                {% else %}
+                    No s'ha pogut detectar un preu automàticament.
+                {% endif %}
+            </p>
+
+            {% if product.notes %}
+                <div class="detail-notes">
+                    <h2>Notes</h2>
+                    <p>{{ product.notes }}</p>
+                </div>
+            {% endif %}
+
+            <p class="detail-meta-muted">
+                Afegit el {{ product.created_at.strftime("%d/%m/%Y %H:%M") if product.created_at else "data desconeguda" }}
+            </p>
+        </div>
+    </article>
+</section>
+{% endblock %}

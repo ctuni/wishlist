@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Llista de desitjos{% endblock %}
+
+{% block content %}
+
+<section class="layout-grid">
+    <!-- Columna esquerra: formulari de creació -->
+    <section class="panel">
+        <h2 class="panel-title">Afegeix una nova entrada</h2>
+        <p class="panel-subtitle">
+            Pots guardar tant un sol producte com una pàgina plena d’idees.
+        </p>
+        <form method="post" action="/add" class="form-stacked">
+            <label class="field">
+                <span class="field-label">URL</span>
+                <input type="url" name="url" required placeholder="https://..." />
+            </label>
+
+            <label class="field">
+                <span class="field-label">Notes</span>
+                <input type="text" name="notes" placeholder="Per què t'interessa, límit de preu, etc." />
+            </label>
+
+            <label class="field">
+                <span class="field-label">Categoria</span>
+                <input type="text" name="category" placeholder="cuina, llibres, decoració..." />
+            </label>
+
+            <div class="field-group">
+                <label class="field">
+                    <span class="field-label">Tipus</span>
+                    <select name="entry_type">
+                        <option value="product" selected>Pàgina d'un sol producte</option>
+                        <option value="page">Pàgina amb molts productes / inspiració</option>
+                    </select>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                + Afegir a la wishlist
+            </button>
+        </form>
+    </section>
+
+    <!-- Columna dreta: filtres + llista -->
+    <section class="panel panel-main">
+        <div class="panel-header-row">
+            <div>
+                <h2 class="panel-title">La teva col·lecció</h2>
+                <p class="panel-subtitle">
+                    Filtra per categoria, tipus o cerca per text per trobar ràpidament el que busques.
+                </p>
+            </div>
+            {% if products %}
+            <div class="pill-counter">
+                {{ products|length }} entrades
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Barra de filtres -->
+        <section class="filters">
+            <form method="get" action="/" class="filters-form">
+                <label class="field">
+                    <span class="field-label">Cerca</span>
+                    <input type="text" name="q" value="{{ current_q }}" placeholder="títol, notes..." />
+                </label>
+
+                <label class="field">
+                    <span class="field-label">Categoria</span>
+                    <select name="category">
+                        <option value="">(Totes)</option>
+                        {% for c in categories %}
+                            <option value="{{ c }}" {% if c == current_category %}selected{% endif %}>
+                                {{ c }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="field">
+                    <span class="field-label">Tipus</span>
+                    <select name="entry_type">
+                        <option value="">(Tots)</option>
+                        <option value="product" {% if current_entry_type == 'product' %}selected{% endif %}>
+                            Productes
+                        </option>
+                        <option value="page" {% if current_entry_type == 'page' %}selected{% endif %}>
+                            Pàgines d'inspiració
+                        </option>
+                    </select>
+                </label>
+
+                <div class="filters-actions">
+                    <button type="submit" class="btn-secondary">Aplicar filtres</button>
+                    <a href="/" class="link-clear">Netejar filtres</a>
+                </div>
+            </form>
+        </section>
+
+        <!-- Graella de targetes -->
+        <section class="product-grid">
+            {% if products %}
+                {% for p in products %}
+                <article class="product-card {% if p.purchased %}purchased{% endif %}">
+                        <a href="/product/{{ p.id }}" class="product-link">
+                            {% if p.image_url %}
+                                <div class="product-image-wrapper">
+                                    <img src="{{ p.image_url }}" alt="{{ p.title }}" class="product-image" />
+                                </div>
+                            {% else %}
+                                <div class="product-placeholder">
+                                    <span>Sense imatge</span>
+                                </div>
+                            {% endif %}
+
+                            <div class="product-body">
+                                <h3 class="product-title" title="{{ p.title }}">
+                                    {{ p.title }}
+                                </h3>
+
+                                <div class="product-badges-row">
+                                    <span class="badge {% if p.entry_type == 'page' %}badge-page{% else %}badge-product{% endif %}">
+                                        {% if p.entry_type == 'page' %}
+                                            Pàgina amb molts productes
+                                        {% else %}
+                                            Producte individual
+                                        {% endif %}
+                                    </span>
+
+                                    {% if p.category %}
+                                        <span class="badge badge-category">
+                                            {{ p.category }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="product-meta-row">
+                                    <p class="product-price">
+                                        {% if p.entry_type == 'product' and p.price %}
+                                            {{ "%.2f"|format(p.price) }} {{ p.currency or "" }}
+                                        {% elif p.entry_type == 'page' %}
+                                            <span class="muted">Preus múltiples / no aplicable</span>
+                                        {% else %}
+                                            <span class="muted">Preu no detectat</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="product-source">
+                                        {{ p.source }}
+                                    </p>
+                                </div>
+
+                                {% if p.notes %}
+                                    <p class="product-notes">
+                                        {{ p.notes }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </a>
+                        
+                        <div class="product-purchase-toggle">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    class="purchase-toggle"
+                                    data-id="{{ p.id }}"
+                                    {% if p.purchased %}checked{% endif %}
+                                >
+                                <span>Comprat</span>
+                            </label>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <h3>Encara no hi ha cap entrada amb aquests filtres</h3>
+                    <p>Pots afegir alguna URL a la targeta de l'esquerra o canviar els filtres.</p>
+                </div>
+            {% endif %}
+        </section>
+    </section>
+</section>
+
+{% endblock %}
